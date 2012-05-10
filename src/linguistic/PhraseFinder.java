@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import linguistic.snowball.englishStemmer;
 import linguistic.tokenizer.PhraseTokenizer;
@@ -18,15 +19,42 @@ import com.aliasi.hmm.HmmDecoder;
 import com.aliasi.tag.Tagging;
 
 public class PhraseFinder {
+	
+	//if we didn't find the phrase, here's
+	//something to compare to so you know
+	public int DEFAULT_INDEX = 1000;
+	
+
+	private String currentDefinition = "";
+	private int beginningIndex = DEFAULT_INDEX;
+	private int endIndex = DEFAULT_INDEX;
+	
+	/**
+	 * These will be set after each phrase query
+	 * They will be -1 if no phrase was found.
+	 * So you'll want to do a range check ;)
+	 * @return
+	 */
+	public int getBeginningIndex() {
+		return beginningIndex;
+	}
 
 	/**
-	 * FIXME: this hashmap needs to go in a database on the device
+	 * The end index is inclusive of the last word of the phrase
+	 * (in other words, it is NOT one past like String.substring() is)
+	 * @return
 	 */
-	private static HashMap<String, String> verbList = new HashMap<String, String>();
-	static {
-		verbList.put("take-VB x-NN in-IN", "absorb, kinda");
-		verbList.put("get-VB x-NN of-IN", "what");
-		verbList.put("keep-VB tabs-NN on-IN", "track activity");
+	public int getEndIndex() {
+		return endIndex;
+	}
+
+	/**
+	 * This is just because I am returning index values from the phrase search,
+	 * so here is how to retrieve the definition.
+	 * @return - the definition found for the last searched phrase
+	 */
+	public String getDefinition() {
+		return currentDefinition;
 	}
 
 	private static final String VERB = "vb";
@@ -47,6 +75,40 @@ public class PhraseFinder {
 		this.model = new ObjectInputStream(model);
 	}
 
+	/**
+	 * 
+	 * @param input - a string of words that probably contains a phrasal verb
+	 * 				tokenized by whitespace
+	 * @return boolean indicating whether we found a phrase or not
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	public boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
+		//we received a string tokenized by whitespace. What I really want is just 
+		//the words with no punctuation
+		//XXX: when we get cross-sentence strings this might screw up the POS tagger
+		for (int i = 0; i < input.length; i++) {
+			//I'm doing it this way to keep the index length the same
+			input[i] = input[i].replaceAll("[^\\w|']", ""); //removes punctuation except for apostrophes
+		}
+		
+		Tagging<String> tagging = invokeLingPipe(input);
+		
+		//split it up so I can get the lemma
+		List<String> rawTokens = tagging.tokens();
+		List<String> tags = tagging.tags();
+		String[] stemmedTokens = stemString(rawTokens);
+		
+		//do analysis on the POS tags
+		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]));
+		
+		//see if the phrasal verb is in our dictionary
+		currentDefinition = DBLookup.search(searchString);
+		
+		//if index range is default, we didn't find it
+		return this.beginningIndex != DEFAULT_INDEX;
+	}
+	
 	public String findPhrasalVerb(String input) throws IOException, ClassNotFoundException {
 		PhraseTokenizer tokenizer = new PhraseTokenizer();
 		String [] raw_surface = tokenizer.doTokenize(input);
@@ -129,6 +191,7 @@ public class PhraseFinder {
 		for (int i = 0; i < surface.length; i++) {
 			//look for a verb
 			if (tags[i].startsWith(VERB)) {
+				this.beginningIndex = i;
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
 				//case 1: we have an uninterrupted verb-preposition type of phrase
 				if (i+1 < tags.length && tags[i+1].startsWith(IN)) { //TODO: do I need to check "to"?
@@ -138,7 +201,7 @@ public class PhraseFinder {
 				//case 2: there's a noun phrase in between the verb and preposition
 				else {
 					//skip past all words in the noun phrase
-					// they get normalized into "x-NN"
+					// they get normalized into "x-nn"
 					for(int j = i+1; j < tags.length; j++) {
 						if((tags[j].equals(IN) || tags[j].equals(TO))) {
 							//did we actually encounter a phrase here? (this should always be the case)
@@ -146,10 +209,13 @@ public class PhraseFinder {
 								sb.append(" x-nn ");
 								// now tack on the prep
 								sb.append(surface[j]).append("-").append(tags[j]);
+								this.endIndex = j;
 								return sb.toString();
 							}
-							else //false positive
+							else {//false positive
+								this.beginningIndex = DEFAULT_INDEX;
 								break;
+							}
 						}
 					}
 				}
@@ -157,11 +223,15 @@ public class PhraseFinder {
 			//this verb was not a winner - check for another one
 			sb = new StringBuilder();
 		}
-		return ""; //no verb found. what can I do?
+		//reset everything, we didn't find it
+		this.beginningIndex = this.endIndex = DEFAULT_INDEX;
+		return ""; //no verb found. sorry.
 	}
 	
 	/**
 	 * Calls Snowball stemmer on a string of English words
+	 * Caveat: this doesn't account for tense, so to improve the system
+	 * we'd need some morphological analysis
 	 * @param tokenizedInput - the word list, should be tokenized or our indices will mismatch
 	 * @return the stemmed versions of the word
 	 * @throws Throwable
