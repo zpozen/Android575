@@ -7,9 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.StreamCorruptedException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import linguistic.snowball.englishStemmer;
 import linguistic.tokenizer.PhraseTokenizer;
@@ -63,29 +61,31 @@ public class PhraseFinder {
 	
 	ObjectInputStream model;
 	
-	public static void main (String [] args) {
+//	public static void main (String [] args) {
 //		CustomEnglishStemmer ces = new CustomEnglishStemmer();
 //		ces.findPhrasalVerb("I want to keep tabs on it.");
 //		ces.findPhrasalVerb("He was backing out of the driveway.");
 //		ces.findPhrasalVerb("she's keeping a hold of it.");
-		
-	}
+//	}
     
 	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException {
 		this.model = new ObjectInputStream(model);
 	}
 
 	/**
+	 * Sets values on PhraseFinder indicating the location of the phrasal verb
+	 * and also the definition
 	 * 
 	 * @param input - a string of words that probably contains a phrasal verb
 	 * 				tokenized by whitespace
 	 * @return boolean indicating whether we found a phrase or not
+	 * 
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
 	public boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
 		//we received a string tokenized by whitespace. What I really want is just 
-		//the words with no punctuation
+		//the words with no punctuation, so let's do that now
 		//XXX: when we get cross-sentence strings this might screw up the POS tagger
 		for (int i = 0; i < input.length; i++) {
 			//I'm doing it this way to keep the index length the same
@@ -109,6 +109,7 @@ public class PhraseFinder {
 		return this.beginningIndex != DEFAULT_INDEX;
 	}
 	
+	//unused. returns the phrase itself
 	public String findPhrasalVerb(String input) throws IOException, ClassNotFoundException {
 		PhraseTokenizer tokenizer = new PhraseTokenizer();
 		String [] raw_surface = tokenizer.doTokenize(input);
@@ -128,7 +129,7 @@ public class PhraseFinder {
 	}
 	
 	/**
-	 * Loads LingPipe's HMM decoder, which tags the input string
+	 * Loads LingPipe's HMM decoder, which POS tags the input string
 	 * @param phrase - tokenized words to be tagged
 	 * @return a Tagging object, which has the surface text and tags
 	 * @throws IOException
@@ -138,54 +139,17 @@ public class PhraseFinder {
         //FileInputStream fileIn = new FileInputStream(new File("/home/megs/tools/lingpipe-4.1.0/demos/models/pos-en-general-brown.HiddenMarkovModel"));
         HiddenMarkovModel hmm = (HiddenMarkovModel) model.readObject();
         model.close();
-        //Streams.closeQuietly(objIn);
         HmmDecoder decoder = new HmmDecoder(hmm);
         List<String> tokenList = Arrays.asList(phrase);
         return decoder.tag(tokenList);
-//        for (int i = 0; i < tagging.size(); ++i)
-//            System.out.print(tagging.token(i) + "-" + tagging.tag(i).toUpperCase() + " ");
-//        System.out.println();
-//		System.out.println("result verb! " + pullOutSearchString(tagging));
-//		System.out.println("result other! " + pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()])));
 	}
-	
-/*
-	private String pullOutSearchString(Tagging tokenAndTags) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < tokenAndTags.size(); i++) {
-			//look for a verb
-			if (tokenAndTags.tag(i).startsWith(VERB)) {
-				sb.append(tokenAndTags.token(i)).append("-").append(VERB); //add verb to search string
-				//case 1: we have an uninterrupted verb-preposition type of phrase
-				if (i+1 < tokenAndTags.size() && tokenAndTags.tag(i+1).startsWith(IN)) { //TODO: do I need to check "to"?
-					sb.append(" ").append(tokenAndTags.token(i)).append("-").append(IN); //add prep to search string
-					return sb.toString();
-				} 
-				//case 2: there's a noun phrase in between the verb and preposition
-				else {
-					//skip past all words in the noun phrase
-					// they get normalized into "x-NN"
-					for(int j = i+1; j < tokenAndTags.size(); j++) {
-						if((tokenAndTags.tag(j).equals(IN) || tokenAndTags.tag(j).equals(TO))) {
-							//did we actually encounter a phrase here? (this should always be the case)
-							if (j != i+1) {
-								sb.append(" x-nn ");
-								// now tack on the prep
-								sb.append(tokenAndTags.token(j)).append("-").append(tokenAndTags.tag(j));
-								return sb.toString();
-							}
-							else //false positive
-								break;
-						}
-					}
-				}
-			}
-			//no love for this verb - see if there are any more
-			sb = new StringBuilder();
-		}
-		return ""; //no verb found. what can I do?
-	}
-*/
+
+	/**
+	 * Check the POS structure to identify the phrasal verb
+	 * @param surface
+	 * @param tags
+	 * @return
+	 */
 	private String pullOutSearchString(String[] surface, String[] tags) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < surface.length; i++) {
@@ -256,42 +220,4 @@ public class PhraseFinder {
 		
 		return result.toArray(new String[result.size()]);
 	}
-	
-	/*//I don't think I need this any more, but ya know, just in case
-	private String pullOutSearchString(Tagging tokenAndTags) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < tokenAndTags.size(); i++) {
-			//look for a verb
-			if (tokenAndTags.tag(i).startsWith(VERB)) {
-				sb.append(tokenAndTags.token(i)).append("-").append(VERB); //add verb to search string
-				//case 1: we have an uninterrupted verb-preposition type of phrase
-				if (i+1 < tokenAndTags.size() && tokenAndTags.tag(i+1).startsWith(IN)) { //TODO: do I need to check "to"?
-					sb.append(" ").append(tokenAndTags.token(i)).append("-").append(IN); //add prep to search string
-					return sb.toString();
-				} 
-				//case 2: there's a noun phrase in between the verb and preposition
-				else {
-					//skip past all words in the noun phrase
-					// they get normalized into "x-NN"
-					for(int j = i+1; j < tokenAndTags.size(); j++) {
-						if((tokenAndTags.tag(j).equals(IN) || tokenAndTags.tag(j).equals(TO))) {
-							//did we actually encounter a phrase here? (this should always be the case)
-							if (j != i+1) {
-								sb.append(" x-nn ");
-								// now tack on the prep
-								sb.append(tokenAndTags.token(j)).append("-").append(tokenAndTags.tag(j));
-								return sb.toString();
-							}
-							else //false positive
-								break;
-						}
-					}
-				}
-			}
-			//no love for this verb - see if there are any more
-			sb = new StringBuilder();
-		}
-		return ""; //no verb found. what can I do?
-	}
-*/
 }
