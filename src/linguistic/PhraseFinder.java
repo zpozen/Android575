@@ -17,7 +17,7 @@ import com.aliasi.hmm.HiddenMarkovModel;
 import com.aliasi.hmm.HmmDecoder;
 import com.aliasi.tag.Tagging;
 
-public class CustomEnglishStemmer {
+public class PhraseFinder {
 
 	/**
 	 * FIXME: this hashmap needs to go in a database on the device
@@ -43,7 +43,7 @@ public class CustomEnglishStemmer {
 		
 	}
     
-	public CustomEnglishStemmer(InputStream model) throws StreamCorruptedException, IOException {
+	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException {
 		this.model = new ObjectInputStream(model);
 	}
 

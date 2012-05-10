@@ -3,7 +3,7 @@ package megazi.smartup;
 import java.io.IOException;
 import java.io.InputStream;
 
-import linguistic.CustomEnglishStemmer;
+import linguistic.PhraseFinder;
 import android.app.Activity;
 import android.content.res.AssetManager;
 import android.os.Bundle;
@@ -16,11 +16,14 @@ public class SmartUpActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         AssetManager assetMgr = getAssets();
+        //here is the string that we've decided to look for a phrase in
         String inputPhrase = "She's keeping tabs on the spy";
+        //if you see this, something didn't work
         String result = "this is the default text";
         try {
+        	//the phrase handler can't reach assets, so pass in a stream from here
 			InputStream model = assetMgr.open("pos-en-general-brown.HiddenMarkovModel");
-			CustomEnglishStemmer phraseHandler = new CustomEnglishStemmer(model);
+			PhraseFinder phraseHandler = new PhraseFinder(model);
 			result = phraseHandler.findPhrasalVerb(inputPhrase);
 		} catch (IOException e) {
 			System.out.println("Failed to find HMM file");
