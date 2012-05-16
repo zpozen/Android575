@@ -17,16 +17,16 @@ import com.aliasi.hmm.HmmDecoder;
 import com.aliasi.tag.Tagging;
 
 public class PhraseFinder {
-	
+
 	//if we didn't find the phrase, here's
 	//something to compare to so you know
 	public int DEFAULT_INDEX = 1000;
-	
+
 
 	private String currentDefinition = "";
 	private int beginningIndex = DEFAULT_INDEX;
 	private int endIndex = DEFAULT_INDEX;
-	
+
 	/**
 	 * These will be set after each phrase query
 	 * They will be -1 if no phrase was found.
@@ -58,18 +58,28 @@ public class PhraseFinder {
 	private static final String VERB = "vb";
 	private static final String TO = "to";
 	private static final String IN = "in";
-	
+
 	ObjectInputStream model;
-	
-//	public static void main (String [] args) {
-//		CustomEnglishStemmer ces = new CustomEnglishStemmer();
-//		ces.findPhrasalVerb("I want to keep tabs on it.");
-//		ces.findPhrasalVerb("He was backing out of the driveway.");
-//		ces.findPhrasalVerb("she's keeping a hold of it.");
-//	}
-    
-	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException {
+	HiddenMarkovModel hmm;
+
+	//	public static void main (String [] args) {
+	//		CustomEnglishStemmer ces = new CustomEnglishStemmer();
+	//		ces.findPhrasalVerb("I want to keep tabs on it.");
+	//		ces.findPhrasalVerb("He was backing out of the driveway.");
+	//		ces.findPhrasalVerb("she's keeping a hold of it.");
+	//	}
+
+	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException, ClassNotFoundException {
 		this.model = new ObjectInputStream(model);
+		this.hmm = (HiddenMarkovModel) this.model.readObject();        
+	}
+
+	protected void finalize() throws Throwable {
+		try {
+			model.close();
+		} finally {
+			super.finalize();
+		}
 	}
 
 	/**
@@ -91,24 +101,24 @@ public class PhraseFinder {
 			//I'm doing it this way to keep the index length the same
 			input[i] = input[i].replaceAll("[^\\w|']", ""); //removes punctuation except for apostrophes
 		}
-		
+
 		Tagging<String> tagging = invokeLingPipe(input);
-		
+
 		//split it up so I can get the lemma
 		List<String> rawTokens = tagging.tokens();
 		List<String> tags = tagging.tags();
 		String[] stemmedTokens = stemString(rawTokens);
-		
+
 		//do analysis on the POS tags
 		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]));
-		
+
 		//see if the phrasal verb is in our dictionary
 		currentDefinition = DBLookup.search(searchString);
-		
+
 		//if index range is default, we didn't find it
 		return this.beginningIndex != DEFAULT_INDEX;
 	}
-	
+
 	//unused. returns the phrase itself
 	public String findPhrasalVerb(String input) throws IOException, ClassNotFoundException {
 		PhraseTokenizer tokenizer = new PhraseTokenizer();
@@ -121,13 +131,13 @@ public class PhraseFinder {
 		//do analysis on the POS tags
 		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]));
 		//see if the phrasal verb is in our dictionary
-		
+
 		//return something useful
 		//I'm not sure what that's going to be yet
 		//so for now just return the query phrase
 		return searchString;
 	}
-	
+
 	/**
 	 * Loads LingPipe's HMM decoder, which POS tags the input string
 	 * @param phrase - tokenized words to be tagged
@@ -136,12 +146,12 @@ public class PhraseFinder {
 	 * @throws ClassNotFoundException
 	 */
 	public Tagging<String> invokeLingPipe(String [] phrase) throws IOException, ClassNotFoundException {
-        //FileInputStream fileIn = new FileInputStream(new File("/home/megs/tools/lingpipe-4.1.0/demos/models/pos-en-general-brown.HiddenMarkovModel"));
-        HiddenMarkovModel hmm = (HiddenMarkovModel) model.readObject();
-        model.close();
-        HmmDecoder decoder = new HmmDecoder(hmm);
-        List<String> tokenList = Arrays.asList(phrase);
-        return decoder.tag(tokenList);
+		//FileInputStream fileIn = new FileInputStream(new File("/home/megs/tools/lingpipe-4.1.0/demos/models/pos-en-general-brown.HiddenMarkovModel"));
+		// HiddenMarkovModel hmm = (HiddenMarkovModel) model.readObject();
+		// model.close();
+		HmmDecoder decoder = new HmmDecoder(hmm);
+		List<String> tokenList = Arrays.asList(phrase);
+		return decoder.tag(tokenList);
 	}
 
 	/**
@@ -191,7 +201,7 @@ public class PhraseFinder {
 		this.beginningIndex = this.endIndex = DEFAULT_INDEX;
 		return ""; //no verb found. sorry.
 	}
-	
+
 	/**
 	 * Calls Snowball stemmer on a string of English words
 	 * Caveat: this doesn't account for tense, so to improve the system
@@ -200,24 +210,24 @@ public class PhraseFinder {
 	 * @return the stemmed versions of the word
 	 * @throws Throwable
 	 */
-	 
+
 	public String[] stemString(List<String> tokenizedInput) {
 		String [] temp = tokenizedInput.toArray(new String[tokenizedInput.size()]);
 		return stemString(temp);
 	}
-	
+
 	public String[] stemString(String[] tokenizedInput) {
-		
+
 		englishStemmer stemmer = new englishStemmer();
 		ArrayList<String> result = new ArrayList<String>();
 		//StringBuffer input = new StringBuffer();
-		
+
 		for (String s : tokenizedInput) {
 			stemmer.setCurrent(s.toLowerCase());
 			stemmer.stem();
 			result.add(stemmer.getCurrent());
 		}
-		
+
 		return result.toArray(new String[result.size()]);
 	}
 }
