@@ -195,10 +195,7 @@ public class SmartUpActivity extends Activity implements OnTouchListener {
 				for (int i = phraseHandler.getBeginningIndex(); i <= phraseHandler.getEndIndex(); i++)
 					sb.append(indexed[i]).append(" ");
 				result = sb.toString();
-				//debugging
-				Log.w("WTF", result.toString());
-			} else
-				Log.w("WTF", " not found ! ");
+			}
 
 		} catch (IOException e) {
 			Log.e("ERROR", "Failed to find HMM file");

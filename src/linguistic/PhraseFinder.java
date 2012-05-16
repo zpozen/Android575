@@ -58,8 +58,9 @@ public class PhraseFinder {
 	}
 
 	private static final String VERB = "vb";
-	private static final String TO = "to";
+	private static final String ADJ = "jj";
 	private static final String IN = "in";
+	private static final String PRT = "rp"; //particle
 
 	ObjectInputStream model;
 	HiddenMarkovModel hmm;
@@ -69,11 +70,11 @@ public class PhraseFinder {
 		try {
 			FileInputStream fis = new FileInputStream(new File(args[0]));
 			phraser = new PhraseFinder(fis);
-			String [] indexed = "These numbers just don't add up.".split("\\s+");  //case 1
+			String [] indexed = "The kids kick angry cats and the pot will boil over.".split("\\s+");  //case 1 + try-second-verb
 			testPhraseFinder(phraser, indexed);
-			indexed = "He staved the attack off with a stick.".split("\\s+"); //case 2
+			indexed = "The excess stuff will burn off.".split("\\s+"); //case 2
 			testPhraseFinder(phraser, indexed);
-			indexed = "Chinese food doesn't stave off hunger for long.".split("\\s+"); //case 3
+			indexed = "The bag will burst open.".split("\\s+"); //case 3
 			testPhraseFinder(phraser, indexed);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -133,10 +134,19 @@ public class PhraseFinder {
 		String[] stemmedTokens = stemString(rawTokens);
 
 		//do analysis on the POS tags
-		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]));
+		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), false);
 
 		//see if the phrasal verb is in our dictionary
 		currentDefinition = DBLookup.search(searchString);
+		
+		if (DBLookup.NOT_FOUND.equals(currentDefinition)) {
+			//if we encountered a thing that looked phrasal but isn't in our dictionary
+			// try again in case there's a second verb in the sentence
+			this.beginningIndex = DEFAULT_INDEX;
+			this.endIndex = DEFAULT_INDEX;
+			searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), true);
+			currentDefinition = DBLookup.search(searchString);
+		}
 
 		//if index range is default, we didn't find it
 		return this.beginningIndex != DEFAULT_INDEX;
@@ -152,7 +162,7 @@ public class PhraseFinder {
 		List<String> tags = tagging.tags();
 		String[] stemmedTokens = stemString(rawTokens);
 		//do analysis on the POS tags
-		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]));
+		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), false);
 		//see if the phrasal verb is in our dictionary
 
 		//return something useful
@@ -179,20 +189,36 @@ public class PhraseFinder {
 
 	/**
 	 * Check the POS structure to identify the phrasal verb
+	 * 
+	 * This looks for word patterns in the structure of
+	 * 
+	 * verb { preposition | particle | adjective }
+	 * verb noun* { preposition | particle | adjective }
+	 * 
+	 * (The POS tagger we're using likes to label "open" (as in "burst open")
+	 * as an adjective. The skipFirstVerb option helps move past false positives
+	 * that this might cause.)
+	 * 
 	 * @param surface
 	 * @param tags
 	 * @return
 	 */
-	private String pullOutSearchString(String[] surface, String[] tags) {
+	private String pullOutSearchString(String[] surface, String[] tags, boolean skipFirstVerb) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < surface.length; i++) {
 			//look for a verb
 			if (tags[i].startsWith(VERB)) {
+				//disable the boolean so we'll process the next verb, if any
+				 if(skipFirstVerb) {
+					 skipFirstVerb = false;
+					 continue;
+				 }
 				this.beginningIndex = i;
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
 				//case 1: we have an uninterrupted verb-preposition type of phrase
-				if (i+1 < tags.length && tags[i+1].startsWith(IN)) { //don't check "to", those are infinitives
-					sb.append(" ").append(surface[i]).append("-").append(IN); //add prep to search string
+				if (i+1 < tags.length && (tags[i+1].startsWith(IN) || tags[i+1].startsWith(PRT) || tags[i+1].equals(ADJ))) { //don't check "to", those are infinitives
+					sb.append(" ").append(surface[i+1]).append("-").append(IN); //add prep to search string
+					this.endIndex = i+1;
 					return sb.toString();
 				} 
 				//case 2: there's a noun phrase in between the verb and preposition
@@ -200,7 +226,7 @@ public class PhraseFinder {
 					//skip past all words in the noun phrase
 					// they get normalized into "x-nn"
 					for(int j = i+1; j < tags.length; j++) {
-						if((tags[j].equals(IN) || tags[j].equals(TO))) {
+						if(tags[j].equals(IN) || tags[j].equals(PRT) || tags[j].equals(ADJ)) {
 							//did we actually encounter a phrase here? (this should always be the case)
 							if (j != i+1) {
 								sb.append(" x-nn ");
