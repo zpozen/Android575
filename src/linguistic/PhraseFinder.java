@@ -1,6 +1,8 @@
 
 package linguistic;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -62,12 +64,33 @@ public class PhraseFinder {
 	ObjectInputStream model;
 	HiddenMarkovModel hmm;
 
-	//	public static void main (String [] args) {
-	//		CustomEnglishStemmer ces = new CustomEnglishStemmer();
-	//		ces.findPhrasalVerb("I want to keep tabs on it.");
-	//		ces.findPhrasalVerb("He was backing out of the driveway.");
-	//		ces.findPhrasalVerb("she's keeping a hold of it.");
-	//	}
+	public static void main (String [] args) {
+		PhraseFinder phraser;
+		try {
+			FileInputStream fis = new FileInputStream(new File(args[0]));
+			phraser = new PhraseFinder(fis);
+			String [] indexed = "These numbers just don't add up.".split("\\s+");  //case 1
+			testPhraseFinder(phraser, indexed);
+			indexed = "He staved the attack off with a stick.".split("\\s+"); //case 2
+			testPhraseFinder(phraser, indexed);
+			indexed = "Chinese food doesn't stave off hunger for long.".split("\\s+"); //case 3
+			testPhraseFinder(phraser, indexed);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void testPhraseFinder(PhraseFinder phraser, String [] indexed) throws IOException, ClassNotFoundException {
+		if (phraser.findPhrasalVerb(indexed)) {
+			StringBuilder sb = new StringBuilder();
+			//pull the phrase out of the text we sent
+			for (int i = phraser.getBeginningIndex(); i <= phraser.getEndIndex(); i++)
+				sb.append(indexed[i]).append(" ");
+			System.out.println(sb.toString());
+		} else
+			System.out.println(" not found ! ");
+	}
+		
 
 	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException, ClassNotFoundException {
 		this.model = new ObjectInputStream(model);
@@ -168,7 +191,7 @@ public class PhraseFinder {
 				this.beginningIndex = i;
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
 				//case 1: we have an uninterrupted verb-preposition type of phrase
-				if (i+1 < tags.length && tags[i+1].startsWith(IN)) { //TODO: do I need to check "to"?
+				if (i+1 < tags.length && tags[i+1].startsWith(IN)) { //don't check "to", those are infinitives
 					sb.append(" ").append(surface[i]).append("-").append(IN); //add prep to search string
 					return sb.toString();
 				} 

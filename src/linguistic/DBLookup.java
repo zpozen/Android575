@@ -27,6 +27,12 @@ public class DBLookup {
 	
 	private static HashMap<String, String> verbList = new HashMap<String, String>();
 	static {
+		
+		/** 
+		 * Case 1: uninterrupted verb-prep 
+		 * 		e.g. "back away" but not "back it away"
+		 * 
+		 **/
 		verbList.put("take-VB x-NN in-IN", "absorb, kinda");
 		verbList.put("get-VB x-NN of-IN", "what");
 		verbList.put("keep-VB tabs-NN on-IN", "track activity");
@@ -521,6 +527,13 @@ public class DBLookup {
 		verbList.put("write-VB back-IN", "unk");
 		verbList.put("zone-VB out-IN", "unk");
 
+		/** 
+		 * Case 2: interrupted verb-prep 
+		 * 		e.g. break it open
+		 * 
+		 * Case 3: uninterrupted verb-prep (same as case 1)
+		 * 		e.g. break open the safe 
+		 **/
 		verbList.put("act-VB x-NN out-IN", "unk");
 		verbList.put("add-VB x-NN in-IN", "unk");
 		verbList.put("add-VB x-NN on-IN", "unk");
@@ -757,8 +770,8 @@ public class DBLookup {
 		verbList.put("filter-VB x-NN out-IN", "unk");
 		verbList.put("find-VB x-NN out-IN", "unk");
 		verbList.put("finish-VB x-NN off-IN", "unk");
-		verbList.put("finish-IN", "unk");
-		verbList.put("fire-IN", "unk");
+		verbList.put("finish-IN", "unk");				//???
+		verbList.put("fire-IN", "unk");					//???
 		verbList.put("firm-VB x-NN up-IN", "unk");
 		verbList.put("fish-VB x-NN out-IN", "unk");
 		verbList.put("fit-VB x-NN in-IN", "unk");
@@ -781,7 +794,7 @@ public class DBLookup {
 		verbList.put("fork-VB x-NN over-IN", "unk");
 		verbList.put("frame-VB x-NN in-IN", "unk");
 		verbList.put("freak-VB x-NN out-IN", "unk");
-		verbList.put("free-IN", "unk");
+		verbList.put("free-VB x-NN up-IN", "unk");
 		verbList.put("frighten-VB x-NN off-IN", "unk");
 		verbList.put("fritter-VB x-NN away-IN", "unk");
 		verbList.put("fuck-VB x-NN up-IN", "unk");

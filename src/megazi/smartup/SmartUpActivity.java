@@ -97,10 +97,10 @@ public class SmartUpActivity extends Activity implements OnTouchListener {
 			case MotionEvent.ACTION_UP:
 				long timediff = ev.getEventTime() - ev.getDownTime();
 				Log.v("INFO", "SmartUpActivity::onTouch ACTION_UP, timediff is " + timediff + " selection is " + getSelectedWord());
-				if (timediff >= ViewConfiguration.getLongPressTimeout())
-				{
+//				if (timediff >= ViewConfiguration.getLongPressTimeout())
+//				{
 					// see if this is part of a WME
-					String inputPhrase = "test"; // getSelectedPhrase(); 
+					String inputPhrase = "These numbers just don't add up."; // getSelectedPhrase(); 
 					String mwe = getMWE(inputPhrase, getAssets());
 
 					if (mwe.length() == 0){
@@ -110,7 +110,7 @@ public class SmartUpActivity extends Activity implements OnTouchListener {
 					else {
 						Toast.makeText(this, mwe, Toast.LENGTH_LONG).show();
 					}
-				}
+//				}
 				break;
 			}
 			break;
@@ -195,14 +195,17 @@ public class SmartUpActivity extends Activity implements OnTouchListener {
 				for (int i = phraseHandler.getBeginningIndex(); i <= phraseHandler.getEndIndex(); i++)
 					sb.append(indexed[i]).append(" ");
 				result = sb.toString();
-			}
+				//debugging
+				Log.w("WTF", result.toString());
+			} else
+				Log.w("WTF", " not found ! ");
 
 		} catch (IOException e) {
-			System.out.println("Failed to find HMM file");
-			e.printStackTrace();
+			Log.e("ERROR", "Failed to find HMM file");
+			//e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			System.out.println("Failed to find aliasi classes");
-			e.printStackTrace();
+			Log.e("ERROR", "Failed to find aliasi classes");
+			//e.printStackTrace();
 		}        
 		return result;
 	}
