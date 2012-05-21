@@ -17,6 +17,7 @@ import linguistic.tokenizer.PhraseTokenizer;
 import com.aliasi.hmm.HiddenMarkovModel;
 import com.aliasi.hmm.HmmDecoder;
 import com.aliasi.tag.Tagging;
+import com.aliasi.tokenizer.PorterStemmerTokenizerFactory;
 
 public class PhraseFinder {
 
@@ -26,8 +27,22 @@ public class PhraseFinder {
 
 
 	private String currentDefinition = "";
+	private String currentPhrase = "";
 	private int beginningIndex = DEFAULT_INDEX;
 	private int endIndex = DEFAULT_INDEX;
+
+	/**
+	 * This will be set after each phrase query
+	 * and contains the surface value of the phrasal
+	 * verb. Good for querying Wordnik with ;)
+	 * 
+	 * Contains "" if phrase wasn't found
+	 * 
+	 * @return
+	 */
+	public String getCurrentPhrase() {
+		return currentPhrase;
+	}
 
 	/**
 	 * These will be set after each phrase query
@@ -70,12 +85,13 @@ public class PhraseFinder {
 		try {
 			FileInputStream fis = new FileInputStream(new File(args[0]));
 			phraser = new PhraseFinder(fis);
-			String [] indexed = "The kids kick angry cats and the pot will boil over.".split("\\s+");  //case 1 + try-second-verb
+			String [] indexed = "The kids kick angry cats and the pot will boil over.".split("\\s+");  //case 1
 			testPhraseFinder(phraser, indexed);
 			indexed = "The excess stuff will burn off.".split("\\s+"); //case 2
 			testPhraseFinder(phraser, indexed);
-			indexed = "The bag will burst open.".split("\\s+"); //case 3
+			indexed = "He will write it down.".split("\\s+"); //case 3
 			testPhraseFinder(phraser, indexed);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -88,6 +104,7 @@ public class PhraseFinder {
 			for (int i = phraser.getBeginningIndex(); i <= phraser.getEndIndex(); i++)
 				sb.append(indexed[i]).append(" ");
 			System.out.println(sb.toString());
+			System.out.println(phraser.getCurrentPhrase());
 		} else
 			System.out.println(" not found ! ");
 	}
@@ -118,6 +135,13 @@ public class PhraseFinder {
 	 * @throws ClassNotFoundException
 	 */
 	public boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
+		
+		//reset everything across runs
+		this.beginningIndex = DEFAULT_INDEX;
+		this.endIndex = DEFAULT_INDEX;
+		this.currentDefinition = "";
+		this.currentPhrase = "";
+		
 		//we received a string tokenized by whitespace. What I really want is just 
 		//the words with no punctuation, so let's do that now
 		//XXX: when we get cross-sentence strings this might screw up the POS tagger
@@ -170,6 +194,10 @@ public class PhraseFinder {
 		//so for now just return the query phrase
 		return searchString;
 	}
+	
+	public String getLemma(String word) {
+		return PorterStemmerTokenizerFactory.stem(word);
+	}
 
 	/**
 	 * Loads LingPipe's HMM decoder, which POS tags the input string
@@ -204,6 +232,11 @@ public class PhraseFinder {
 	 * @return
 	 */
 	private String pullOutSearchString(String[] surface, String[] tags, boolean skipFirstVerb) {
+		StringBuilder surfacePhrase = new StringBuilder();
+		//debugging
+		for (int t = 0; t < tags.length; t++)
+			System.out.print(surface[t] + "-" + tags[t] + " ");
+		System.out.println();
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < surface.length; i++) {
 			//look for a verb
@@ -215,10 +248,13 @@ public class PhraseFinder {
 				 }
 				this.beginningIndex = i;
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
+				surfacePhrase.append(surface[i]);
 				//case 1: we have an uninterrupted verb-preposition type of phrase
 				if (i+1 < tags.length && (tags[i+1].startsWith(IN) || tags[i+1].startsWith(PRT) || tags[i+1].equals(ADJ))) { //don't check "to", those are infinitives
 					sb.append(" ").append(surface[i+1]).append("-").append(IN); //add prep to search string
+					surfacePhrase.append(" ").append(surface[i+1]);
 					this.endIndex = i+1;
+					currentPhrase = surfacePhrase.toString();
 					return sb.toString();
 				} 
 				//case 2: there's a noun phrase in between the verb and preposition
@@ -231,8 +267,10 @@ public class PhraseFinder {
 							if (j != i+1) {
 								sb.append(" x-nn ");
 								// now tack on the prep
-								sb.append(surface[j]).append("-").append(tags[j]);
+								sb.append(surface[j]).append("-").append(IN);
+								surfacePhrase.append(" ").append(surface[j]);
 								this.endIndex = j;
+								currentPhrase = surfacePhrase.toString();
 								return sb.toString();
 							}
 							else {//false positive
@@ -245,6 +283,7 @@ public class PhraseFinder {
 			}
 			//this verb was not a winner - check for another one
 			sb = new StringBuilder();
+			surfacePhrase = new StringBuilder();
 		}
 		//reset everything, we didn't find it
 		this.beginningIndex = this.endIndex = DEFAULT_INDEX;
