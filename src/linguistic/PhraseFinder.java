@@ -73,7 +73,7 @@ public class PhraseFinder {
 	}
 
 	private static final String VERB = "vb";
-	private static final String ADJ = "jj";
+	private static final String ADV = "rb";
 	private static final String IN = "in";
 	private static final String PRT = "rp"; //particle
 
@@ -89,7 +89,7 @@ public class PhraseFinder {
 			testPhraseFinder(phraser, indexed);
 			indexed = "The excess stuff will burn off.".split("\\s+"); //case 2
 			testPhraseFinder(phraser, indexed);
-			indexed = "He will write it down.".split("\\s+"); //case 3
+			indexed = "Write the answer down right here.".split("\\s+"); //case 3
 			testPhraseFinder(phraser, indexed);
 			
 		} catch (Exception e) {
@@ -250,7 +250,7 @@ public class PhraseFinder {
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
 				surfacePhrase.append(surface[i]);
 				//case 1: we have an uninterrupted verb-preposition type of phrase
-				if (i+1 < tags.length && (tags[i+1].startsWith(IN) || tags[i+1].startsWith(PRT) || tags[i+1].equals(ADJ))) { //don't check "to", those are infinitives
+				if (i+1 < tags.length && (tags[i+1].startsWith(IN) || tags[i+1].startsWith(PRT) || tags[i+1].equals(ADV))) { //don't check "to"; those are infinitives
 					sb.append(" ").append(surface[i+1]).append("-").append(IN); //add prep to search string
 					surfacePhrase.append(" ").append(surface[i+1]);
 					this.endIndex = i+1;
@@ -262,7 +262,7 @@ public class PhraseFinder {
 					//skip past all words in the noun phrase
 					// they get normalized into "x-nn"
 					for(int j = i+1; j < tags.length; j++) {
-						if(tags[j].equals(IN) || tags[j].equals(PRT) || tags[j].equals(ADJ)) {
+						if((tags[j].equals(IN) || tags[j].equals(PRT) || tags[j].equals(ADV)) && DBLookup.isKnownParticle(surface[j])) {
 							//did we actually encounter a phrase here? (this should always be the case)
 							if (j != i+1) {
 								sb.append(" x-nn ");

@@ -1,5 +1,6 @@
 package linguistic;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DBLookup {
@@ -14,10 +15,47 @@ public class DBLookup {
 	 * @return definition of the phrase
 	 */
 	public static String search(String queryString) {
+		//System.out.println("Searching for == " + queryString);
 		if (verbList.containsKey(queryString)) {
 			return verbList.get(queryString);
 		}
 		return NOT_FOUND;
+	}
+	
+	public static boolean isKnownParticle(String potential) {
+		return particleList.contains(potential.toLowerCase());
+	}
+	
+	/**
+	 * List of particles to check against. Our POS tagger likes to tag these
+	 * as adverbs, so we need to check this list to avoid false positives
+	 */
+	private static ArrayList<String> particleList = new ArrayList<String>();
+	
+	static {
+		particleList.add("in");
+		particleList.add("out");
+		particleList.add("over");
+		particleList.add("up");
+		particleList.add("down");
+		particleList.add("away");
+		particleList.add("on");
+		particleList.add("off");
+		particleList.add("together");
+		particleList.add("through");
+		particleList.add("back");
+		particleList.add("around");
+		particleList.add("along");
+		particleList.add("about");
+		particleList.add("across");
+		particleList.add("by");
+		particleList.add("apart");
+		particleList.add("thin");
+		particleList.add("short");
+		particleList.add("forth");
+		particleList.add("behind");
+		particleList.add("aside");
+		particleList.add("home");
 	}
 	
 	/**
@@ -1251,10 +1289,6 @@ public class DBLookup {
 		verbList.put("strike-vb x-nn down-in", "unk");
 		verbList.put("strike-vb x-nn off-in", "unk");
 		verbList.put("strike-vb x-nn out-in", "unk");
-		verbList.put("string-in", "unk");
-		verbList.put("string-in", "unk");
-		verbList.put("string-in", "unk");
-		verbList.put("string-in", "unk");
 		verbList.put("strip-vb x-nn off-in", "unk");
 		verbList.put("stub-vb x-nn out-in", "unk");
 		verbList.put("suck-vb x-nn in-in", "unk");
