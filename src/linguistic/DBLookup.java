@@ -246,6 +246,7 @@ public class DBLookup {
 		verbList.put("gear-vb up-in", "unk");
 		verbList.put("get-vb along-in", "unk");
 		verbList.put("get-vb around-in", "unk");
+		verbList.put("get-vb over-in", "unk");
 		verbList.put("get-vb through-in", "unk");
 		verbList.put("get-vb up-in", "unk");
 		verbList.put("give-vb in-in", "unk");
@@ -324,6 +325,7 @@ public class DBLookup {
 		verbList.put("log-vb on-in", "unk");
 		verbList.put("log-vb out-in", "unk");
 		verbList.put("look-vb around-in", "unk");
+		verbList.put("look-vb away-in", "unk");
 		verbList.put("look-vb on-in", "unk");
 		verbList.put("look-vb up-in", "unk");
 		verbList.put("lose-vb out-in", "unk");
