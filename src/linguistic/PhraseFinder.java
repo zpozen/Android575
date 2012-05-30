@@ -251,7 +251,7 @@ public class PhraseFinder {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < surface.length; i++) {
 			//look for a verb
-			if (tags[i].startsWith(VERB)) {
+			verb: if (tags[i].startsWith(VERB)) {
 				//disable the boolean so we'll process the next verb, if any
 				 if(skipFirstVerb) {
 					 skipFirstVerb = false;
@@ -272,7 +272,12 @@ public class PhraseFinder {
 				else {
 					//skip past all words in the noun phrase
 					// they get normalized into "x-nn"
-					for(int j = i+1; j < tags.length; j++) {
+					particle: for(int j = i+1; j < tags.length; j++) {
+						//check for intervening verbs and start over
+						if (tags[j].equals(VERB)) {
+							i = j-1;
+							break particle;
+						}
 						if((tags[j].equals(IN) || tags[j].equals(PRT) || tags[j].equals(ADV)) && DBLookup.isKnownParticle(surface[j])) {
 							//did we actually encounter a phrase here? (this should always be the case)
 							if (j != i+1) {
