@@ -145,6 +145,7 @@ public class PhraseFinder {
 		phrase.setPreposition(rawTokens.get(endIndex));
 		phrase.setPrepIndex(endIndex);
 		phrase.setVerbPOS(tags.get(beginningIndex));
+		phrase.setIthinkIfoundSomething(this.beginningIndex != DEFAULT_INDEX); //do we think we found something
 		return phrase;
 	}
 	/**

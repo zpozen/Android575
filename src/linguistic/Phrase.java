@@ -7,6 +7,7 @@ package linguistic;
  */
 public class Phrase {
 
+	private boolean IthinkIfoundSomething;
 	private String verbPOS;
 	private String verb;
 	private String preposition;
@@ -41,6 +42,12 @@ public class Phrase {
 	}
 	public void setPrepIndex(int prepIndex) {
 		this.prepIndex = prepIndex;
+	}
+	public boolean ithinkIfoundSomething() {
+		return IthinkIfoundSomething;
+	}
+	public void setIthinkIfoundSomething(boolean ithinkIfoundSomething) {
+		IthinkIfoundSomething = ithinkIfoundSomething;
 	}
 	
 }
