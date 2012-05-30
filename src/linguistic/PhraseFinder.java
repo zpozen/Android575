@@ -131,22 +131,21 @@ public class PhraseFinder {
 	 * This is a workaround to the fact that the onboard stemmer 
 	 * doesn't handle tense stemming at all
 	 * @param input - tokenized sentence with a phrasal verb
-	 * @return - Phrase object holding useful info about the phrase, or null if there was no phrasal verb
+	 * @return - Phrase object holding useful info about the phrase, if we found one
+	 * 			Keep in mind that we are checking in DBLookup for the phrase, but not using that for our
+	 * 			basis of approval of whether we found a phrase or not
 	 * @throws ClassNotFoundException 
 	 * @throws IOException 
 	 */
 	public Phrase getRawPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
 		Phrase phrase = new Phrase();
-		if (findPhrasalVerb(input)) {
-			phrase.setVerb(rawTokens.get(beginningIndex));
-			phrase.setVerbIndex(beginningIndex);
-			phrase.setPreposition(rawTokens.get(endIndex));
-			phrase.setPrepIndex(endIndex);
-			phrase.setVerbPOS(tags.get(beginningIndex));
-			return phrase;
-		}
-		else
-			return null;
+		findPhrasalVerb(input);
+		phrase.setVerb(rawTokens.get(beginningIndex));
+		phrase.setVerbIndex(beginningIndex);
+		phrase.setPreposition(rawTokens.get(endIndex));
+		phrase.setPrepIndex(endIndex);
+		phrase.setVerbPOS(tags.get(beginningIndex));
+		return phrase;
 	}
 	/**
 	 * Sets values on PhraseFinder indicating the location of the phrasal verb
@@ -159,7 +158,7 @@ public class PhraseFinder {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
+	private boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
 		
 		//reset everything across runs
 		this.beginningIndex = DEFAULT_INDEX;
@@ -191,14 +190,15 @@ public class PhraseFinder {
 		//see if the phrasal verb is in our dictionary
 		currentDefinition = DBLookup.search(searchString);
 		
-		if (DBLookup.NOT_FOUND.equals(currentDefinition)) {
-			//if we encountered a thing that looked phrasal but isn't in our dictionary
-			// try again in case there's a second verb in the sentence
-			this.beginningIndex = DEFAULT_INDEX;
-			this.endIndex = DEFAULT_INDEX;
-			searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), true);
-			currentDefinition = DBLookup.search(searchString);
-		}
+		//we're sacrificing the second lookup in order to more easily handle the past tense problem
+//		if (DBLookup.NOT_FOUND.equals(currentDefinition)) {
+//			//if we encountered a thing that looked phrasal but isn't in our dictionary
+//			// try again in case there's a second verb in the sentence
+//			this.beginningIndex = DEFAULT_INDEX;
+//			this.endIndex = DEFAULT_INDEX;
+//			searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), true);
+//			currentDefinition = DBLookup.search(searchString);
+//		}
 
 		//if index range is default, we didn't find it
 		return this.beginningIndex != DEFAULT_INDEX;
