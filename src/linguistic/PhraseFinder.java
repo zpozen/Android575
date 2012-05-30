@@ -93,12 +93,12 @@ public class PhraseFinder {
 			testPhraseFinder(phraser, indexed);
 			indexed = "Write the answer down right here.".split("\\s+"); //case 3
 			testPhraseFinder(phraser, indexed);
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static void testPhraseFinder(PhraseFinder phraser, String [] indexed) throws IOException, ClassNotFoundException {
 		Phrase p = phraser.getRawPhrasalVerb(indexed); 
 		if (p != null) {
@@ -112,7 +112,7 @@ public class PhraseFinder {
 		} else
 			System.out.println(" not found ! ");
 	}
-		
+
 
 	public PhraseFinder(InputStream model) throws StreamCorruptedException, IOException, ClassNotFoundException {
 		this.model = new ObjectInputStream(model);
@@ -139,13 +139,18 @@ public class PhraseFinder {
 	 */
 	public Phrase getRawPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
 		Phrase phrase = new Phrase();
-		findPhrasalVerb(input);
-		phrase.setVerb(rawTokens.get(beginningIndex));
-		phrase.setVerbIndex(beginningIndex);
-		phrase.setPreposition(rawTokens.get(endIndex));
-		phrase.setPrepIndex(endIndex);
-		phrase.setVerbPOS(tags.get(beginningIndex));
-		phrase.setIthinkIfoundSomething(this.beginningIndex != DEFAULT_INDEX); //do we think we found something
+		boolean found = findPhrasalVerb(input);
+		if (!found) {
+			phrase.clear();
+		}
+		else {
+			phrase.setVerb(rawTokens.get(beginningIndex));
+			phrase.setVerbIndex(beginningIndex);
+			phrase.setPreposition(rawTokens.get(endIndex));
+			phrase.setPrepIndex(endIndex);
+			phrase.setVerbPOS(tags.get(beginningIndex));
+			phrase.setIthinkIfoundSomething(this.beginningIndex != DEFAULT_INDEX); //do we think we found something
+		}
 		return phrase;
 	}
 	/**
@@ -160,13 +165,13 @@ public class PhraseFinder {
 	 * @throws ClassNotFoundException
 	 */
 	private boolean findPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
-		
+
 		//reset everything across runs
 		this.beginningIndex = DEFAULT_INDEX;
 		this.endIndex = DEFAULT_INDEX;
 		this.currentDefinition = "";
 		this.currentPhrase = "";
-		
+
 		//we received a string tokenized by whitespace. What I really want is just 
 		//the words with no punctuation, so let's do that now
 		//XXX: when we get cross-sentence strings this might screw up the POS tagger
@@ -190,21 +195,21 @@ public class PhraseFinder {
 
 		//see if the phrasal verb is in our dictionary
 		currentDefinition = DBLookup.search(searchString);
-		
+
 		//we're sacrificing the second lookup in order to more easily handle the past tense problem
-//		if (DBLookup.NOT_FOUND.equals(currentDefinition)) {
-//			//if we encountered a thing that looked phrasal but isn't in our dictionary
-//			// try again in case there's a second verb in the sentence
-//			this.beginningIndex = DEFAULT_INDEX;
-//			this.endIndex = DEFAULT_INDEX;
-//			searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), true);
-//			currentDefinition = DBLookup.search(searchString);
-//		}
+		//		if (DBLookup.NOT_FOUND.equals(currentDefinition)) {
+		//			//if we encountered a thing that looked phrasal but isn't in our dictionary
+		//			// try again in case there's a second verb in the sentence
+		//			this.beginningIndex = DEFAULT_INDEX;
+		//			this.endIndex = DEFAULT_INDEX;
+		//			searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), true);
+		//			currentDefinition = DBLookup.search(searchString);
+		//		}
 
 		//if index range is default, we didn't find it
 		return this.beginningIndex != DEFAULT_INDEX;
 	}
-	
+
 	//unused
 	public String getLemma(String word) {
 		return PorterStemmerTokenizerFactory.stem(word);
@@ -253,10 +258,10 @@ public class PhraseFinder {
 			//look for a verb
 			verb: if (tags[i].startsWith(VERB)) {
 				//disable the boolean so we'll process the next verb, if any
-				 if(skipFirstVerb) {
-					 skipFirstVerb = false;
-					 continue;
-				 }
+				if(skipFirstVerb) {
+					skipFirstVerb = false;
+					continue;
+				}
 				this.beginningIndex = i;
 				sb.append(surface[i]).append("-").append(VERB); //add verb to search string
 				surfacePhrase.append(surface[i]);
@@ -297,9 +302,9 @@ public class PhraseFinder {
 					}
 				}
 			}
-			//this verb was not a winner - check for another one
-			sb = new StringBuilder();
-			surfacePhrase = new StringBuilder();
+		//this verb was not a winner - check for another one
+		sb = new StringBuilder();
+		surfacePhrase = new StringBuilder();
 		}
 		//reset everything, we didn't find it
 		this.beginningIndex = this.endIndex = DEFAULT_INDEX;

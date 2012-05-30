@@ -49,5 +49,10 @@ public class Phrase {
 	public void setIthinkIfoundSomething(boolean ithinkIfoundSomething) {
 		IthinkIfoundSomething = ithinkIfoundSomething;
 	}
+	public void clear() {
+		IthinkIfoundSomething = false;
+		verbPOS = verb = preposition = null;
+		verbIndex = prepIndex = -1;
+	}
 	
 }

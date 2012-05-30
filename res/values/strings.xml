@@ -3,5 +3,6 @@
 
     <string name="hello">Hello World, SmartUpActivity!</string>
     <string name="app_name">SmartUp</string>
+    <string name="pick_text">What are we reading?</string>
 
 </resources>
