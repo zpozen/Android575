@@ -30,6 +30,8 @@ public class PhraseFinder {
 	private String currentPhrase = "";
 	private int beginningIndex = DEFAULT_INDEX;
 	private int endIndex = DEFAULT_INDEX;
+	List<String> rawTokens;
+	List<String> tags;
 
 	/**
 	 * This will be set after each phrase query
@@ -98,13 +100,15 @@ public class PhraseFinder {
 	}
 	
 	public static void testPhraseFinder(PhraseFinder phraser, String [] indexed) throws IOException, ClassNotFoundException {
-		if (phraser.findPhrasalVerb(indexed)) {
+		Phrase p = phraser.getRawPhrasalVerb(indexed); 
+		if (p != null) {
 			StringBuilder sb = new StringBuilder();
 			//pull the phrase out of the text we sent
-			for (int i = phraser.getBeginningIndex(); i <= phraser.getEndIndex(); i++)
+			for (int i = p.getVerbIndex(); i <= p.getPrepIndex(); i++)
 				sb.append(indexed[i]).append(" ");
+			sb.append(p.getVerbPOS());
 			System.out.println(sb.toString());
-			System.out.println(phraser.getCurrentPhrase());
+			System.out.println(p.getVerb() + " " + p.getPreposition());
 		} else
 			System.out.println(" not found ! ");
 	}
@@ -123,6 +127,27 @@ public class PhraseFinder {
 		}
 	}
 
+	/**
+	 * This is a workaround to the fact that the onboard stemmer 
+	 * doesn't handle tense stemming at all
+	 * @param input - tokenized sentence with a phrasal verb
+	 * @return - Phrase object holding useful info about the phrase, or null if there was no phrasal verb
+	 * @throws ClassNotFoundException 
+	 * @throws IOException 
+	 */
+	public Phrase getRawPhrasalVerb(String [] input) throws IOException, ClassNotFoundException {
+		Phrase phrase = new Phrase();
+		if (findPhrasalVerb(input)) {
+			phrase.setVerb(rawTokens.get(beginningIndex));
+			phrase.setVerbIndex(beginningIndex);
+			phrase.setPreposition(rawTokens.get(endIndex));
+			phrase.setPrepIndex(endIndex);
+			phrase.setVerbPOS(tags.get(beginningIndex));
+			return phrase;
+		}
+		else
+			return null;
+	}
 	/**
 	 * Sets values on PhraseFinder indicating the location of the phrasal verb
 	 * and also the definition
@@ -148,14 +173,17 @@ public class PhraseFinder {
 		for (int i = 0; i < input.length; i++) {
 			//I'm doing it this way to keep the index length the same
 			input[i] = input[i].replaceAll("[^\\w|']", ""); //removes punctuation except for apostrophes
+			input[i] = input[i].toLowerCase();
 		}
 
 		Tagging<String> tagging = invokeLingPipe(input);
 
 		//split it up so I can get the lemma
-		List<String> rawTokens = tagging.tokens();
-		List<String> tags = tagging.tags();
-		String[] stemmedTokens = stemString(rawTokens);
+		rawTokens = tagging.tokens();
+		tags = tagging.tags();
+		//XXX the original lemmatizer doesn't work very well
+		//String[] stemmedTokens = stemString(rawTokens);
+		String[] stemmedTokens = rawTokens.toArray(new String[rawTokens.size()]);
 
 		//do analysis on the POS tags
 		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), false);
@@ -175,26 +203,8 @@ public class PhraseFinder {
 		//if index range is default, we didn't find it
 		return this.beginningIndex != DEFAULT_INDEX;
 	}
-
-	//unused. returns the phrase itself
-	public String findPhrasalVerb(String input) throws IOException, ClassNotFoundException {
-		PhraseTokenizer tokenizer = new PhraseTokenizer();
-		String [] raw_surface = tokenizer.doTokenize(input);
-		Tagging<String> tagging = invokeLingPipe(raw_surface);
-		//split it up so I can get the lemma
-		List<String> rawTokens = tagging.tokens();
-		List<String> tags = tagging.tags();
-		String[] stemmedTokens = stemString(rawTokens);
-		//do analysis on the POS tags
-		String searchString = pullOutSearchString(stemmedTokens, tags.toArray(new String[tags.size()]), false);
-		//see if the phrasal verb is in our dictionary
-
-		//return something useful
-		//I'm not sure what that's going to be yet
-		//so for now just return the query phrase
-		return searchString;
-	}
 	
+	//unused
 	public String getLemma(String word) {
 		return PorterStemmerTokenizerFactory.stem(word);
 	}
