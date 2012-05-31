@@ -4,5 +4,6 @@
     <string name="hello">Hello World, SmartUpActivity!</string>
     <string name="app_name">SmartUp</string>
     <string name="pick_text">What are we reading?</string>
+    <string name="hint">Hint: press and hold a word to see its definition. \nTry it with a phrasal verb and see what happens! \n\nJust be patient, the lookup can be sloooooow... </string>
 
 </resources>
